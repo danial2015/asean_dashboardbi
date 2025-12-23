@@ -1,0 +1,91 @@
+🏦 1. Indikator Ekonomi Makro (Fundamental)
+
+Menunjukkan kekuatan ekonomi dan dinamika pertumbuhan nasional.
+
+GDP (current US$) – ukuran output ekonomi total (nominal).
+
+GDP per capita (current US$) – indikator kesejahteraan rata-rata.
+
+GDP growth (annual %) – kecepatan pertumbuhan ekonomi.
+
+Gross capital formation (% of GDP) – investasi domestik.
+
+Inflation, consumer prices (annual %) – stabilitas harga.
+
+Unemployment, total (% of total labor force) – kesehatan pasar tenaga kerja.
+
+📊 Relevansi indikator ini sering dipakai untuk laporan ekonomi, riset pembangunan, dan evaluasi makro.
+
+🛒 2. Indikator Sosial & Pembangunan Manusia
+
+Menggambarkan kesejahteraan sosial, pendidikan, dan kesehatan.
+
+Life expectancy at birth (years) – indikator kesehatan utama.
+
+Mortality rate, infant (per 1,000 live births) – efektivitas sistem kesehatan.
+
+School enrollment, primary (% gross) – akses pendidikan dasar.
+
+Literacy rate, adult (% of people ages 15 and above) – kemampuan dasar masyarakat.
+
+Poverty headcount ratio at $2.15 a day (% of population) – tingkat kemiskinan ekstrem.
+
+📚 Relevansi digunakan dalam Human Development Index (HDI) dan laporan kesejahteraan global.
+
+🌍 3. Indikator Perdagangan & Globalisasi
+
+Mencerminkan integrasi ekonomi dengan dunia.
+
+Exports of goods and services (% of GDP)
+
+Imports of goods and services (% of GDP)
+
+Foreign direct investment, net inflows (BoP, current US$)
+
+Trade (% of GDP) – keterbukaan ekonomi (ekspor + impor).
+
+🌐 Relevansi digunakan untuk menilai derajat globalisasi dan ketergantungan terhadap perdagangan internasional.
+
+🌱 4. Indikator Lingkungan & Energi
+
+Menunjukkan hubungan antara ekonomi dan keberlanjutan lingkungan.
+
+CO₂ emissions (metric tons per capita)
+
+Energy use (kg of oil equivalent per capita)
+
+Renewable energy consumption (% of total final energy consumption)
+
+Forest area (% of land area)
+
+Access to electricity (% of population)
+
+🌳 Relevansi sangat penting untuk analisis sustainability, climate policy, dan green economy.
+
+🧭 5. Indikator Institusional & Inklusi
+
+Menilai kapasitas pemerintahan dan ketimpangan sosial.
+
+GINI index – ketimpangan pendapatan.
+
+Government effectiveness index
+
+Rule of law index
+
+Access to finance (% adults with bank account)
+
+⚖️ Relevansi digunakan dalam studi tata kelola (governance), ketimpangan, dan inklusi keuangan.
+
+🔎 Jika disarikan untuk komunikasi publik
+
+Lima indeks paling sering dikutip secara global dari WDI adalah
+
+GDP per capita (US$)
+
+Inflation rate (CPI)
+
+Unemployment rate (%)
+
+Life expectancy (years)
+
+CO₂ emissions per capita
