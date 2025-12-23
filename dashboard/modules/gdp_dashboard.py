@@ -3,6 +3,8 @@
 # ASEAN GDP Growth Dashboard — Executive Edition (Cleaned)
 # ==========================================================
 
+from pathlib import Path  # ✅ ADD
+
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
@@ -12,15 +14,33 @@ import streamlit as st
 from .utils import apply_global_style, PRIMARY, SLATE, GOLD, TEAL, SILVER
 
 
+def _load_csv_or_stop(path: Path, label: str, skiprows: int = 4) -> pd.DataFrame:
+    """Load CSV + tampilkan error yang jelas kalau file tidak ditemukan (Streamlit Cloud friendly)."""
+    if not path.exists():
+        st.error(f"❌ File {label} tidak ditemukan.")
+        st.code(str(path))
+        st.info(
+            "Cek struktur repo kamu. Untuk kode ini, file harus ada di:\n"
+            "- `dashboard/data/GDP/dataset_gdp.csv`\n\n"
+            "Kalau file kamu ada di folder lain, sesuaikan path-nya."
+        )
+        st.stop()
+    return pd.read_csv(path, skiprows=skiprows)
+
+
 def show():
     """Main GDP Growth Dashboard"""
     apply_global_style()
 
     # -------------------------------
-    # 1) Load & Prepare Data
+    # 1) Load & Prepare Data (✅ FIX PATH)
     # -------------------------------
-    file_path = "data/GDP/dataset_gdp.csv"
-    raw = pd.read_csv(file_path, skiprows=4)
+    # gdp_dashboard.py ada di: dashboard/modules/gdp_dashboard.py
+    # parents[1] => dashboard/
+    BASE_DIR = Path(__file__).resolve().parents[1]  # .../dashboard
+    file_path = BASE_DIR / "data" / "GDP" / "dataset_gdp.csv"
+
+    raw = _load_csv_or_stop(file_path, "GDP", skiprows=4)
     raw = raw[raw["Indicator Name"] == "GDP growth (annual %)"]
 
     ASEAN = [
@@ -36,6 +56,11 @@ def show():
     long["Year"] = pd.to_numeric(long["Year"], errors="coerce")
     long["GDP_Growth"] = pd.to_numeric(long["GDP_Growth"], errors="coerce").round(2)
     long = long.dropna(subset=["Year", "GDP_Growth"])
+
+    if long.empty:
+        st.error("Data GDP Growth kosong setelah filtering. Cek isi dataset (Indicator Name / Country Name).")
+        st.stop()
+
     years_min, years_max = int(long["Year"].min()), int(long["Year"].max())
 
     # -------------------------------
@@ -73,7 +98,8 @@ def show():
 
         with map_col2:
             map_mode = st.radio("Display Mode", ["Animated (1960–2024)", "Selected Year"], index=0)
-            sel_year_map = st.slider("Select Year", years_min, years_max, 2020)
+            default_year = min(2020, years_max)  # ✅ aman
+            sel_year_map = st.slider("Select Year", years_min, years_max, default_year)
 
         custom_scale = [
             [0.0, "#8B1E3F"], [0.25, "#F4A261"], [0.5, "#E9ECEF"],
@@ -149,7 +175,12 @@ def show():
         st.markdown("### 🏆 Cross-Sectional Comparison")
         latest_year = years_max
         sel_year_comp = st.slider("Select Year:", years_min, years_max, latest_year)
-        dfy = long[long["Year"] == sel_year_comp].dropna(subset=["GDP_Growth"]).sort_values("GDP_Growth", ascending=True)
+
+        dfy = (
+            long[long["Year"] == sel_year_comp]
+            .dropna(subset=["GDP_Growth"])
+            .sort_values("GDP_Growth", ascending=True)
+        )
 
         fig2 = px.bar(
             dfy, x="GDP_Growth", y="Country Name", orientation="h",
@@ -169,7 +200,15 @@ def show():
         }
         sel_event = st.selectbox("Select Event:", list(event_options.keys()))
         y_before, y_after = event_options[sel_event]
-        dfe = long[long["Year"].isin([y_before, y_after])]
+
+        # ✅ filter aman: hanya pakai tahun yang memang ada di data
+        years_available = set(long["Year"].astype(int).unique().tolist())
+        yy = [y for y in [y_before, y_after] if y in years_available]
+        if len(yy) < 2:
+            st.warning("Tahun event tidak lengkap di dataset kamu (periode tidak tersedia).")
+            dfe = long[long["Year"].isin(yy)]
+        else:
+            dfe = long[long["Year"].isin(yy)]
 
         fig3 = px.bar(
             dfe, x="Country Name", y="GDP_Growth", color="Year",
@@ -194,7 +233,7 @@ def show():
     box-shadow:0 8px 24px rgba(0,0,0,0.04);max-width:900px;margin:auto;">
       <h3 style="color:{PRIMARY};font-weight:800;">💼 Executive Insights</h3>
       <p>🌐 <b>ASEAN GDP growth ({years_max}):</b> tren jangka panjang menunjukkan momentum ekonomi positif.</p>
-      <p>⚠️ Krisis besar seperti <b>1998</b>, <b>2008</b>, dan <b>2020</b> menyebabkan kontraksi tajam, 
+      <p>⚠️ Krisis besar seperti <b>1998</b>, <b>2008</b>, dan <b>2020</b> menyebabkan kontraksi tajam,
       namun pola pemulihan semakin cepat setiap dekade.</p>
       <p>🚀 <b>Vietnam</b> dan <b>Philippines</b> menjadi penggerak utama, sementara <b>Singapore</b> menunjukkan stabilitas tinggi.</p>
       <p>🇮🇩 <b>Indonesia</b> konsisten di atas rata-rata ASEAN, menegaskan ketahanan ekonomi makro yang kuat.</p>
