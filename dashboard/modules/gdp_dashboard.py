@@ -1,17 +1,16 @@
 # ==========================================================
 # modules/gdp_dashboard.py
-# ASEAN GDP Growth Dashboard — Executive Edition (Cleaned)
+# ASEAN GDP Growth Dashboard — Executive Edition (Cloud-safe)
 # ==========================================================
 
-from pathlib import Path  # ✅ ADD
+from pathlib import Path
 
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
-import seaborn as sns
 import plotly.express as px
 import streamlit as st
-from .utils import apply_global_style, PRIMARY, SLATE, GOLD, TEAL, SILVER
+
+from .utils import apply_global_style, PRIMARY, GOLD, TEAL
 
 
 def _load_csv_or_stop(path: Path, label: str, skiprows: int = 4) -> pd.DataFrame:
@@ -29,19 +28,21 @@ def _load_csv_or_stop(path: Path, label: str, skiprows: int = 4) -> pd.DataFrame
 
 
 def show():
-    """Main GDP Growth Dashboard"""
     apply_global_style()
 
     # -------------------------------
-    # 1) Load & Prepare Data (✅ FIX PATH)
+    # 1) Load & Prepare Data (PATH FIX)
     # -------------------------------
-    # gdp_dashboard.py ada di: dashboard/modules/gdp_dashboard.py
-    # parents[1] => dashboard/
     BASE_DIR = Path(__file__).resolve().parents[1]  # .../dashboard
     file_path = BASE_DIR / "data" / "GDP" / "dataset_gdp.csv"
 
     raw = _load_csv_or_stop(file_path, "GDP", skiprows=4)
-    raw = raw[raw["Indicator Name"] == "GDP growth (annual %)"]
+
+    if "Indicator Name" not in raw.columns:
+        st.error("Kolom 'Indicator Name' tidak ada. Cek format dataset CSV (skiprows mungkin salah).")
+        st.stop()
+
+    raw = raw[raw["Indicator Name"] == "GDP growth (annual %)"].copy()
 
     ASEAN = [
         "Indonesia", "Malaysia", "Thailand", "Viet Nam", "Vietnam",
@@ -49,17 +50,30 @@ def show():
         "Lao PDR", "Myanmar", "Cambodia"
     ]
 
+    if "Country Name" not in raw.columns:
+        st.error("Kolom 'Country Name' tidak ada. Cek format dataset CSV.")
+        st.stop()
+
     dfw = raw[raw["Country Name"].isin(ASEAN)].copy()
-    id_cols = [c for c in ["Country Name", "Country Code"] if c in dfw.columns]
+
+    # Pastikan ada country code untuk choropleth; kalau tidak ada, stop dengan pesan jelas
+    if "Country Code" not in dfw.columns:
+        st.error("Kolom 'Country Code' tidak ditemukan. Choropleth butuh ISO-3 code.")
+        st.stop()
+
+    id_cols = ["Country Name", "Country Code"]
     long = dfw.melt(id_vars=id_cols, var_name="Year", value_name="GDP_Growth")
 
     long["Year"] = pd.to_numeric(long["Year"], errors="coerce")
-    long["GDP_Growth"] = pd.to_numeric(long["GDP_Growth"], errors="coerce").round(2)
-    long = long.dropna(subset=["Year", "GDP_Growth"])
+    long["GDP_Growth"] = pd.to_numeric(long["GDP_Growth"], errors="coerce")
+    long = long.dropna(subset=["Year", "GDP_Growth"]).copy()
 
     if long.empty:
-        st.error("Data GDP Growth kosong setelah filtering. Cek isi dataset (Indicator Name / Country Name).")
+        st.error("Data kosong setelah transform. Cek tahun (kolom digit) & indikator.")
         st.stop()
+
+    long["Year"] = long["Year"].astype(int)
+    long["GDP_Growth"] = long["GDP_Growth"].round(2)
 
     years_min, years_max = int(long["Year"].min()), int(long["Year"].max())
 
@@ -91,28 +105,34 @@ def show():
         ["🌍 Choropleth Map", "📈 Trends", "🏆 Year Comparison", "⚖️ Event Impact"]
     )
 
-    # === (A) Spatial View (ASEAN-Focused) ===
+    # === (A) Spatial View ===
     with tab_map:
         st.markdown("### 🌍 Spatial View — ASEAN GDP Growth")
         map_col1, map_col2 = st.columns([4, 1.4])
 
         with map_col2:
-            map_mode = st.radio("Display Mode", ["Animated (1960–2024)", "Selected Year"], index=0)
-            default_year = min(2020, years_max)  # ✅ aman
+            map_mode = st.radio("Display Mode", ["Animated", "Selected Year"], index=0)
+            default_year = min(2020, years_max)
             sel_year_map = st.slider("Select Year", years_min, years_max, default_year)
+
+        # Untuk animasi, Year lebih aman jadi string
+        data_map = long.copy()
+        if map_mode == "Selected Year":
+            data_map = data_map[data_map["Year"] == sel_year_map].copy()
+
+        data_map["Year_str"] = data_map["Year"].astype(str)
 
         custom_scale = [
             [0.0, "#8B1E3F"], [0.25, "#F4A261"], [0.5, "#E9ECEF"],
             [0.75, "#2A9D8F"], [1.0, "#1D3557"]
         ]
-        data_map = long if map_mode == "Animated (1960–2024)" else long[long["Year"] == sel_year_map]
 
         fig_map = px.choropleth(
             data_map,
             locations="Country Code",
             color="GDP_Growth",
             hover_name="Country Name",
-            animation_frame="Year" if map_mode == "Animated (1960–2024)" else None,
+            animation_frame="Year_str" if map_mode == "Animated" else None,
             color_continuous_scale=custom_scale,
             range_color=(-10, 15),
             projection="mercator"
@@ -131,20 +151,18 @@ def show():
             lonaxis_range=[90, 135]
         )
 
+        # ✅ Layout dibuat "cloud-safe" (hindari titlefont/tickfont/bgcolor yang sering bikin ValueError)
         fig_map.update_layout(
             margin=dict(l=10, r=10, t=40, b=10),
+            height=520,
+            paper_bgcolor="white",
+            plot_bgcolor="white",
             coloraxis_colorbar=dict(
                 title="GDP Growth (%)",
                 ticksuffix="%",
                 len=0.8,
-                bgcolor="rgba(255,255,255,0.6)",
                 outlinewidth=0,
-                titlefont=dict(color="#0B1F3A", size=12),
-                tickfont=dict(color="#334155")
             ),
-            height=520,
-            paper_bgcolor="white",
-            plot_bgcolor="white",
         )
 
         with map_col1:
@@ -155,7 +173,7 @@ def show():
         st.markdown("### 📈 Long-Run Growth Trends")
 
         available_countries = sorted(long["Country Name"].unique().tolist())
-        default_opts = [c for c in ["Indonesia", "Malaysia", "Thailand", "Viet Nam"] if c in available_countries]
+        default_opts = [c for c in ["Indonesia", "Malaysia", "Thailand", "Vietnam"] if c in available_countries]
 
         sel_countries_trend = st.multiselect("Select countries:", available_countries, default=default_opts)
 
@@ -173,8 +191,7 @@ def show():
     # === (C) Year Comparison ===
     with tab_year:
         st.markdown("### 🏆 Cross-Sectional Comparison")
-        latest_year = years_max
-        sel_year_comp = st.slider("Select Year:", years_min, years_max, latest_year)
+        sel_year_comp = st.slider("Select Year:", years_min, years_max, years_max)
 
         dfy = (
             long[long["Year"] == sel_year_comp]
@@ -201,14 +218,14 @@ def show():
         sel_event = st.selectbox("Select Event:", list(event_options.keys()))
         y_before, y_after = event_options[sel_event]
 
-        # ✅ filter aman: hanya pakai tahun yang memang ada di data
         years_available = set(long["Year"].astype(int).unique().tolist())
         yy = [y for y in [y_before, y_after] if y in years_available]
-        if len(yy) < 2:
-            st.warning("Tahun event tidak lengkap di dataset kamu (periode tidak tersedia).")
-            dfe = long[long["Year"].isin(yy)]
-        else:
-            dfe = long[long["Year"].isin(yy)]
+
+        if not yy:
+            st.warning("Tahun event tidak tersedia di dataset kamu.")
+            st.stop()
+
+        dfe = long[long["Year"].isin(yy)].copy()
 
         fig3 = px.bar(
             dfe, x="Country Name", y="GDP_Growth", color="Year",
